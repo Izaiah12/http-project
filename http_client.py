@@ -3,7 +3,8 @@ import sys  # access system arguments with sys.argv and use sys.exit() to provid
 
 
 def http_get(address):
-    # check that the argument is an HTTP address
+    # ensure that the argument is an HTTP address
+    # if not, exit with a non-zero exit code
     if not address.startswith('http://'):
         sys.exit('Invalid HTTP address')
     # remove the 'http://' portion of the address
@@ -11,16 +12,6 @@ def http_get(address):
     # if the address ends in '/' then remove it
     if address.endswith('/'):
         address = address[:-1]
-    # check if a specific port number is provided
-    # if so, remove it from the address and store it
-    # if not, use the default port for HTTP (80)
-    if ':' in address:
-        index = address.find(':')
-        port = address[index+1:].split('/')[0]
-        address = address.replace(':' + port, '')
-        port = int(port)
-    else:
-        port = 80
     # check if a specific page is requested
     # if so, remove it from the address and store it
     # if not, use '/'
@@ -30,11 +21,21 @@ def http_get(address):
         address = address[:index]
     else:
         page = '/'
+    # check if a specific port number is provided
+    # if so, remove it from the address and store it
+    # if not, use the default port for HTTP (80)
+    if ':' in address:
+        index = address.find(':')
+        port = int(address[index+1:])
+        address = address[:index]
+    else:
+        port = 80
 
     # create a socket and connect to the address using the given port
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((address, port))
-    # enable non-blocking behavior by setting a timeout limit
+    # enable non-blocking behavior by setting a timeout limit for the socket
+    # can also be implemented by checking the response content-length and only receiving up to that amount to print
     s.settimeout(5)
     # generate and send an HTTP GET request
     request = 'GET ' + page + ' HTTP/1.1\r\nHost: ' + address + '\r\n\r\n'
@@ -53,6 +54,7 @@ def http_get(address):
     #       then, close the socket and exit with a non-zero exit code
     # else: close the socket and exit with a non-zero exit code
     response = s.recv(1024)
+    print(response)
     response_code = int(response[9:12])
     if response_code == 200:
         index = response.find('Content-Type: ')
